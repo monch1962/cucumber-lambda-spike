@@ -1,0 +1,30 @@
+{
+  "name": "cucumber-lambda-spike",
+  "version": "0.0.1",
+  "description": "",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "David Mitchell",
+  "license": "ISC",
+  "dependencies": {
+    "axe-testcafe": "^1.1.0",
+    "chai": "^4.2.0",
+    "cucumber": "^5.1.0",
+    "cypress": "^3.1.5",
+    "npm": "^6.8.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4"
+  },
+  "devDependencies": {
+    "cypress-cucumber-preprocessor": "^1.11.0",
+    "eslint": "^5.14.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-node": "^8.0.1",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "supertest": "^3.4.2"
+  }
+}
