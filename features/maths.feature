@@ -1,7 +1,7 @@
 Feature: Simple maths
-    In order to do maths
     As a developer
     I want to increment variables
+    So that I can do simple maths
 
     Scenario: easy maths
         Given a variable set to 1
