@@ -56,7 +56,7 @@ provider:
 
 functions:
   hello:
-    handler: handler.hello
+    handler: handler.handler
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
@@ -90,6 +90,8 @@ functions:
 #    Define function environment variables here
 #    environment:
 #      variable2: value2
+environment:
+  S3_BUCKET_NAME: 'cucumber-files'
 
 # you can add CloudFormation resource templates here
 resources:
@@ -97,7 +99,7 @@ resources:
     NewResource:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: cucumber-lambda-spike-references # Reference files such as Cucumber step definitions need to go inside this bucket
+        BucketName: ${env:S3_BUCKET_NAME} # Reference files such as Cucumber step definitions need to go inside this bucket
 #  Outputs:
 #     NewOutput:
 #       Description: "Description for the output"
