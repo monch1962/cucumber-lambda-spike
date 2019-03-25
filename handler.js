@@ -86,11 +86,14 @@ const saveEventFeatureToFile = (event) => {
   const tmpobj = tmp.fileSync({ postfix: '.feature' })
   var feature
   if (event == null) {
+    // No event supplied - read a fake one from ./event.json and use that
     const featureJSON = fs.readFileSync('./event.json')
     feature = JSON.parse(featureJSON).feature
   } else {
+    // Pull apart the event received from API Gateway
     console.log('Received event: ' + event)
-    feature = event.feature
+    console.log('Received event body: ' + JSON.parse(event.body))
+    feature = JSON.parse(event.body).feature
   }
   console.log('Feature: ' + feature)
   fs.writeFileSync(tmpobj.name, feature, 'utf8')
