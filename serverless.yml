@@ -13,6 +13,9 @@
 
 service: cucumber-lambda-spike # NOTE: update this with your service name
 
+custom:
+  S3_BUCKET_NAME: 'cucumber-files'
+
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
 # frameworkVersion: "=X.X.X"
@@ -20,6 +23,8 @@ service: cucumber-lambda-spike # NOTE: update this with your service name
 provider:
   name: aws
   runtime: nodejs8.10
+  environment:
+    S3_BUCKET_NAME: ${self:custom.S3_BUCKET_NAME}
 
 # you can overwrite defaults here
 #  stage: dev
@@ -53,10 +58,18 @@ provider:
 #  exclude:
 #    - exclude-me.js
 #    - exclude-me-dir/**
+package:
+  exclude:
+    - .git/**
 
 functions:
-  hello:
+  feature:
     handler: handler.handler
+    #memorySize: 256
+    events:
+      - http:
+          path: /
+          method: post
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
@@ -90,8 +103,7 @@ functions:
 #    Define function environment variables here
 #    environment:
 #      variable2: value2
-environment:
-  S3_BUCKET_NAME: 'cucumber-files'
+
 
 # you can add CloudFormation resource templates here
 resources:
@@ -99,7 +111,7 @@ resources:
     NewResource:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: ${env:S3_BUCKET_NAME} # Reference files such as Cucumber step definitions need to go inside this bucket
+        BucketName: ${self:custom.S3_BUCKET_NAME} # Reference files such as Cucumber step definitions need to go inside this bucket
 #  Outputs:
 #     NewOutput:
 #       Description: "Description for the output"
