@@ -20,15 +20,15 @@ module.exports.handler = async (event, context) => {
   }
   if (s3bucket !== '') {
     // Copy step files from S3 bucket to Lambda's own filesystem
-    const s3files = await s3FileList(s3bucket)
-    copyFromS3(s3bucket, s3files)
+    const s3StepDefinitionFiles = await s3StepDefinitionFileList(s3bucket)
+    copyStepDefinitionsFromS3(s3bucket, s3StepDefinitionFiles)
   }
 
   const featureFilename = saveEventFeatureToFile(event)
-  console.log('Feature file: ' + featureFilename)
+  // console.log('Feature file: ' + featureFilename)
 
   const cucumberResult = executeCucumber(featureFilename)
-  console.log('cucumberResult: ' + cucumberResult)
+  // console.log('cucumberResult: ' + cucumberResult)
 
   if (cucumberResult == '') {
     return {
@@ -42,7 +42,7 @@ module.exports.handler = async (event, context) => {
     body: {
       // message: 'Go Serverless v1.0! Your function executed successfully!',
       feature: event.body.feature,
-      result: cucumberResult
+      result: JSON.parse(cucumberResult)
     }
   }
 
@@ -52,8 +52,8 @@ module.exports.handler = async (event, context) => {
   // TODO: Return http 501 (Not Implemented) if Cucumber steps haven't been implemented yet
 }
 
-const s3FileList = async (s3bucket) => {
-  console.log('Step and environment files are held in bucket ' + s3bucket)
+const s3StepDefinitionFileList = async (s3bucket) => {
+  // console.log('Step and environment files are held in bucket ' + s3bucket)
   var fileList = await getFiles({ Bucket: s3bucket })
   console.log('S3 filelist: ' + fileList)
   return fileList
@@ -61,7 +61,7 @@ const s3FileList = async (s3bucket) => {
 
 const getFiles = async (params) => {
   const response = await S3.listObjectsV2(params).promise()
-  console.log('S3 bucket contents: ' + JSON.stringify(response))
+  // console.log('S3 bucket contents: ' + JSON.stringify(response))
   var keys = []
   response.Contents.forEach(obj => {
     if (obj.Key.slice(-1) !== '/') {
@@ -76,19 +76,20 @@ const getFiles = async (params) => {
   return keys
 }
 
-const copyFromS3 = (s3bucket, fileList) => {
+const copyStepDefinitionsFromS3 = (s3bucket, fileList) => {
   const fs = require('fs')
   const path = require('path')
-  console.log(fileList)
+  // console.log(fileList)
   fileList.forEach(file => {
     var params = {
       Bucket: s3bucket,
       Key: file
     }
-    var localFilename = path.join('./features/step-definitions/', file)
+    var localFilename = path.join('features/step-definitions/', file)
     console.log('Copying steps from s3://' + s3bucket + '/' + file + ' to local file ' + localFilename)
     var localFile = fs.createWriteStream(localFilename)
-    S3.getObject(params).createReadStream().pipe(localFile)
+    const fileResult = S3.getObject(params).createReadStream().pipe(localFile)
+    console.log('File copy result: ' + JSON.stringify(fileResult))
   })
 }
 
@@ -103,14 +104,14 @@ const saveEventFeatureToFile = (event) => {
     const featureJSON = fs.readFileSync('./event.json')
     // console.log('featureJSON: ' + featureJSON)
     feature = JSON.parse(featureJSON).body.feature
-    console.log('feature: ' + feature)
+    // console.log('feature: ' + feature)
   } else {
     // Pull apart the event received from API Gateway
     // console.log('Received event: ' + JSON.stringify(event))
     // console.log('Received event.body: ' + JSON.stringify(event.body))
     // feature = JSON.stringify(event.body.feature)
     feature = event.body.feature
-    console.log('feature from event: ' + feature)
+    // console.log('feature from event: ' + feature)
   }
   console.log('Feature: ' + feature)
   fs.writeFileSync(tmpobj.name, feature, 'utf8')
@@ -121,7 +122,7 @@ const executeCucumber = (featureFilename) => {
   const dirFiles = 'ls -lR features/'
   const files = shell.exec(dirFiles)
   console.log('files: ' + files)
-  const shellCmd = './node_modules/.bin/cucumber-js ' + featureFilename + ' --format json -s "./features/step-definitions/*.js"'
+  const shellCmd = './node_modules/.bin/cucumber-js ' + featureFilename + ' --format json --require "./features/step-definitions/*.js"'
   console.log('Cucumber request: ' + shellCmd)
   const response = shell.exec(shellCmd)
   // console.log('Cucumber response: ' + response)
