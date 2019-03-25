@@ -15,7 +15,8 @@
     "cypress": "^3.1.5",
     "npm": "^6.8.0",
     "request": "^2.88.0",
-    "request-promise": "^4.2.4"
+    "request-promise": "^4.2.4",
+    "serverless": "^1.38.0"
   },
   "devDependencies": {
     "cypress-cucumber-preprocessor": "^1.11.0",
@@ -25,6 +26,7 @@
     "eslint-plugin-node": "^8.0.1",
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
+    "lambda-local": "^1.5.2",
     "supertest": "^3.4.2"
   }
 }
