@@ -11,7 +11,7 @@ console.log('Reading step files from ' + s3bucket)
 
 module.exports.handler = async (event, context) => {
   console.log('event: ' + JSON.stringify(event))
-  if (event.body.feature === undefined) {
+  if (event.body === undefined) {
     return {
       statusCode: 400,
       feature: event,
