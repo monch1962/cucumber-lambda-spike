@@ -18,8 +18,10 @@ module.exports.handler = async (event, context) => {
   if (event.body === undefined) {
     return {
       statusCode: 400,
-      feature: event,
-      result: "Can't parse event.body.feature"
+      body: {
+        feature: event,
+        result: "Can't parse event.body.feature"
+      }
     }
   }
   var s3StepDefinitionFiles
@@ -50,9 +52,10 @@ module.exports.handler = async (event, context) => {
   if (cucumberResult.status === 1) {
     return {
       statusCode: 501,
-      feature: event.body.feature,
-      result: JSON.parse(cucumberResult.output)
-      // result: cucumberResult
+      body: {
+        feature: event.body.feature,
+        result: JSON.parse(cucumberResult.output)
+      }
     }
   }
   return {
@@ -113,6 +116,7 @@ const copyStepDefinitionsFromS3 = (s3bucket, fileList) => {
 
 const saveEventFeatureToFile = (event) => {
   const fs = require('fs')
+  const escapeJSON = require('escape-json-node')
   const localFeatureFilename = '/tmp/input.feature'
   var feature
   if (event == null) {
@@ -121,7 +125,9 @@ const saveEventFeatureToFile = (event) => {
     feature = JSON.parse(featureJSON).body.feature
   } else {
     // Pull apart the event received from API Gateway
-    feature = event.body.feature
+    feature = JSON.parse(escapeJSON(event.body).replace(/\n/, '')).feature
+    console.log('Parsed feature: ' + feature)
+    // exit(1)
   }
   // console.log('Feature: ' + feature)
   fs.writeFileSync(localFeatureFilename, feature, 'utf8')
@@ -129,17 +135,21 @@ const saveEventFeatureToFile = (event) => {
   const command = 'cat'
   const args = [ localFeatureFilename ]
   const featureFileContent = shellExec(command, args)
-  console.log('featureFileContent: ' + featureFileContent.result)
+  console.log('featureFileContent: ' + featureFileContent.output)
   console.log('localFeatureFilename: ' + localFeatureFilename)
   return localFeatureFilename
 }
 
 const executeCucumber = (featureFilename) => {
   const tmpFiles = listFiles('/tmp')
-  console.log('files: ' + tmpFiles.output)
-  const cmd = './node_modules/.bin/cucumber-js'
+  console.log('files: ' + tmpFiles)
+  // var t2 = listFiles('node_modules/cucumber/bin')
+  // console.log('node_modules/.bin: ' + t2)
+  // var cmd = 'pwd'
+  // shellExec(cmd, ['-L'])
+  const cmd = './cucumber-js'
   const args = [featureFilename, '--format', 'json', '--require', '"/tmp/step-definitions/*.js"']
-  const result = shellExec(cmd, args)
+  const result = shellExec(cmd, args, './node_modules/cucumber/bin')
   console.log('Cucumber response: ' + result.output)
   return result
 }
@@ -155,18 +165,21 @@ const removeFile = (localFilename) => {
   const cmd = 'rm'
   const args = [localFilename]
   const response = shellExec(cmd, args).toString()
-  console.log(response.output)
+  // console.log(response.output)
   return response.status
 }
 
-const shellExec = (cmd, args) => {
-  console.log('shellExec cmd: ' + cmd)
-  console.log('shellExec args: ' + args)
-  const result = shell.spawnSync(cmd, args, { cwd: process.cwd(), env: process.env, stdio: 'pipe', encoding: 'utf-8' })
-  console.log('shellExec result... ')
-  console.log(result)
+const shellExec = (cmd, args, cwd) => {
+  // console.log('shellExec cmd: ' + cmd)
+  // console.log('shellExec args: ' + args)
+  if (cwd === undefined) {
+    cwd = process.cwd()
+  }
+  const result = shell.spawnSync(cmd, args, { cwd: cwd, env: process.env, stdio: 'pipe', encoding: 'utf-8' })
+  // console.log('shellExec result... ')
+  // console.log(result)
   const output = result.stdout
-  console.log('Returning shellExec output: ' + output)
+  // console.log('Returning shellExec output: ' + output)
   const status = result.status
   return { status, output }
 }

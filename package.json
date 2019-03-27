@@ -14,6 +14,7 @@
     "chai": "^4.2.0",
     "childprocess": "^2.0.2",
     "cucumber": "^5.1.0",
+    "escape-json-node": "^2.0.0",
     "npm": "^6.9.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
