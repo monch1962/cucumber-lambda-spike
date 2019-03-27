@@ -42,7 +42,7 @@ module.exports.handler = async (event, context) => {
   // console.log('cucumberResult...')
   // console.log(cucumberResult.output)
   removeFile(featureFilename)
-  if (s3StepFiles !== '') {
+  if (s3StepFiles !== undefined) {
     console.log('s3StepFiles: ' + s3StepFiles)
     console.log('s3StepFiles.split(): ' + s3StepFiles.toString().split(','))
     // exit(1)
@@ -115,9 +115,10 @@ const copyStepFilesFromS3 = (s3bucket, fileList) => {
     const fileResult = S3.getObject(params).createReadStream().pipe(localFile)
     console.log('File copy result: ' + JSON.stringify(fileResult))
     const cmd = 'cat'
-    const args = ['localfile']
-    const localFileContent = shellExec(cmd, args).toString()
-    console.log('localFileContent: ' + localFileContent)
+    // const args = ['localfile']
+    const args = [ localFilename ]
+    const localFileContent = shellExec(cmd, args)
+    console.log('localFileContent: ' + localFileContent.output)
   })
 }
 

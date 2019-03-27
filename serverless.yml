@@ -34,7 +34,18 @@ provider:
       Resource:
         - { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ]]}
         - "arn:aws:s3:::${self:custom.S3_BUCKET_NAME}/*"
-
+    - Effect: "Allow"
+      Action:
+        - "s3:ListBucket"
+      Resource:
+        - { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ]]}
+        - "arn:aws:s3:::${self:custom.S3_BUCKET_NAME}/*"
+    - Effect: "Allow"
+      Action:
+        - "s3:GetObject"
+      Resource:
+        - { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ]]}
+        - "arn:aws:s3:::${self:custom.S3_BUCKET_NAME}/*"
 # you can overwrite defaults here
 #  stage: dev
 #  region: us-east-1
@@ -80,6 +91,7 @@ functions:
       - http:
           path: /
           method: post
+      - s3: ${self:custom.S3_BUCKET_NAME}
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
