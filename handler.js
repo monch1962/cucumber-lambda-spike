@@ -18,10 +18,10 @@ module.exports.handler = async (event, context) => {
   if (event.body === undefined) {
     return {
       statusCode: 400,
-      body: {
+      body: JSON.stringify({
         feature: event,
         result: "Can't parse event.body.feature"
-      }
+      })
     }
   }
   var s3StepDefinitionFiles
@@ -49,22 +49,23 @@ module.exports.handler = async (event, context) => {
   //   })
   // }
 
+  var statusCode = 200
   if (cucumberResult.status === 1) {
-    return {
-      statusCode: 501,
-      body: {
-        feature: event.body.feature,
-        result: JSON.parse(cucumberResult.output)
-      }
-    }
+    statusCode = 501
   }
-  return {
-    statusCode: 200,
-    body: {
-      feature: event.body.feature,
+  const response = {
+    statusCode: statusCode,
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      // feature: event.body.feature,
       result: JSON.parse(cucumberResult.output)
-    }
+    })
   }
+  console.log('Response...')
+  console.log(response)
+  return response
 }
 
 const s3StepDefinitionFileList = async (s3bucket) => {
