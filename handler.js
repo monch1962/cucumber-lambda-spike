@@ -108,7 +108,7 @@ const copyStepFilesFromS3 = (s3bucket, fileList) => {
       Bucket: s3bucket,
       Key: file
     }
-    const localFilename = path.join('tmp', 'step-definitions', file)
+    const localFilename = path.join('/tmp', 'step-definitions', file)
     console.log('Copying steps from s3://' + s3bucket + '/' + file + ' to local file ' + localFilename)
     const localFile = fs.createWriteStream(localFilename)
     console.log('Localfile details: ' + JSON.stringify(localFile))
