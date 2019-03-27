@@ -1,7 +1,11 @@
 'use strict'
 
 const AWS = require('aws-sdk')
-const shell = require('shelljs')
+// const shell = require('shelljs')
+const shell = require('child_process')
+const taskRoot = process.env['LAMBDA_TASK_ROOT'] || __dirname
+process.env.HOME = '/tmp'
+process.env.PATH += ':' + taskRoot
 const S3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
@@ -21,9 +25,9 @@ module.exports.handler = async (event, context) => {
   var s3StepDefinitionFiles
   if (s3bucket !== '') {
     // Copy step files from S3 bucket to Lambda's own filesystem
-    s3StepDefinitionFiles = await s3StepDefinitionFileList(s3bucket)
-    console.log('Found the following S3 StepDefinitionFiles: ' + s3StepDefinitionFiles)
-    copyStepDefinitionsFromS3(s3bucket, s3StepDefinitionFiles)
+    // s3StepDefinitionFiles = await s3StepDefinitionFileList(s3bucket)
+    // console.log('Found the following S3 StepDefinitionFiles: ' + s3StepDefinitionFiles)
+    // copyStepDefinitionsFromS3(s3bucket, s3StepDefinitionFiles)
   }
 
   const featureFilename = saveEventFeatureToFile(event)
@@ -34,27 +38,28 @@ module.exports.handler = async (event, context) => {
 
   // Remove both the saved feature file and the step files copied from S3, so they don't pollute
   // the file space for subsequent executions of this Lambda function in the same container
-  // console.log('cucumberResult...')
-  // console.log(cucumberResult)
-  tidyUpFiles(featureFilename)
+  console.log('cucumberResult...')
+  console.log(cucumberResult.output)
+  removeFile(featureFilename)
   // if (s3StepDefinitionFiles !== '') {
   //   s3StepDefinitionFileList.forEach(stepFile => {
   //     tidyUpFiles(stepFile)
   //   })
   // }
 
-  if (cucumberResult.code === 1) {
+  if (cucumberResult.status === 1) {
     return {
       statusCode: 501,
       feature: event.body.feature,
-      result: JSON.parse(cucumberResult)
+      result: JSON.parse(cucumberResult.output)
+      // result: cucumberResult
     }
   }
   return {
     statusCode: 200,
     body: {
       feature: event.body.feature,
-      result: JSON.parse(cucumberResult)
+      result: JSON.parse(cucumberResult.output)
     }
   }
 }
@@ -99,7 +104,9 @@ const copyStepDefinitionsFromS3 = (s3bucket, fileList) => {
     console.log('Localfile details: ' + JSON.stringify(localFile))
     const fileResult = S3.getObject(params).createReadStream().pipe(localFile)
     console.log('File copy result: ' + JSON.stringify(fileResult))
-    const localFileContent = shell.exec('cat ' + localFile)
+    const cmd = 'cat'
+    const args = ['localfile']
+    const localFileContent = shellExec(cmd, args).toString()
     console.log('localFileContent: ' + localFileContent)
   })
 }
@@ -119,22 +126,47 @@ const saveEventFeatureToFile = (event) => {
   // console.log('Feature: ' + feature)
   fs.writeFileSync(localFeatureFilename, feature, 'utf8')
   // console.log('Saved input feature to ' + localFeatureFilename)
-  const featureFileContent = shell.exec('cat ' + localFeatureFilename)
-  console.log(featureFileContent)
+  const command = 'cat'
+  const args = [ localFeatureFilename ]
+  const featureFileContent = shellExec(command, args)
+  console.log('featureFileContent: ' + featureFileContent.result)
+  console.log('localFeatureFilename: ' + localFeatureFilename)
   return localFeatureFilename
 }
 
 const executeCucumber = (featureFilename) => {
-  const dirFiles = 'ls -lR /tmp/'
-  const files = shell.exec(dirFiles)
-  console.log('files: ' + files)
-  const shellCmd = './node_modules/.bin/cucumber-js ' + featureFilename + ' --format json --require "/tmp/step-definitions/*.js"'
-  console.log('Cucumber request: ' + shellCmd)
-  const response = shell.exec(shellCmd)
-  // console.log('Cucumber response: ' + response)
-  return response
+  const tmpFiles = listFiles('/tmp')
+  console.log('files: ' + tmpFiles.output)
+  const cmd = './node_modules/.bin/cucumber-js'
+  const args = [featureFilename, '--format', 'json', '--require', '"/tmp/step-definitions/*.js"']
+  const result = shellExec(cmd, args)
+  console.log('Cucumber response: ' + result.output)
+  return result
 }
 
-const tidyUpFiles = (localFilename) => {
-  shell.exec('rm ' + localFilename)
+const listFiles = (directory) => {
+  const cmd = 'ls'
+  const args = ['-lR', directory + '/']
+  const files = shellExec(cmd, args)
+  return files.output
+}
+
+const removeFile = (localFilename) => {
+  const cmd = 'rm'
+  const args = [localFilename]
+  const response = shellExec(cmd, args).toString()
+  console.log(response.output)
+  return response.status
+}
+
+const shellExec = (cmd, args) => {
+  console.log('shellExec cmd: ' + cmd)
+  console.log('shellExec args: ' + args)
+  const result = shell.spawnSync(cmd, args, { cwd: process.cwd(), env: process.env, stdio: 'pipe', encoding: 'utf-8' })
+  console.log('shellExec result... ')
+  console.log(result)
+  const output = result.stdout
+  console.log('Returning shellExec output: ' + output)
+  const status = result.status
+  return { status, output }
 }
