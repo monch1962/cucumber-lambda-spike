@@ -23,8 +23,17 @@ custom:
 provider:
   name: aws
   runtime: nodejs8.10
+  memorySize: 1536
+  timeout: 60
   environment:
     S3_BUCKET_NAME: ${self:custom.S3_BUCKET_NAME}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+      Resource:
+        - { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ]]}
+        - "arn:aws:s3:::${self:custom.S3_BUCKET_NAME}/*"
 
 # you can overwrite defaults here
 #  stage: dev
@@ -65,6 +74,7 @@ package:
 functions:
   feature:
     handler: handler.handler
+    description: Serverless version of Cucumber, where features are passed in via API Gateway and step definitions retrieved from S3 bucket
     #memorySize: 256
     events:
       - http:

@@ -17,8 +17,7 @@
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
     "serverless": "^1.39.1",
-    "shelljs": "^0.8.3",
-    "tmp": "0.0.33"
+    "shelljs": "^0.8.3"
   },
   "devDependencies": {
     "cypress-cucumber-preprocessor": "^1.11.0",
