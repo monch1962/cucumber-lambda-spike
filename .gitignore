@@ -61,7 +61,7 @@ typings/
 .next
 
 # Serverless temp files
-.serverless
+.serverless/
 
 package-lock.json
 .vscode/
