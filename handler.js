@@ -1,7 +1,6 @@
 'use strict'
 
 const AWS = require('aws-sdk')
-// const shell = require('shelljs')
 const shell = require('child_process')
 const taskRoot = process.env['LAMBDA_TASK_ROOT'] || __dirname
 process.env.HOME = '/tmp'
@@ -24,12 +23,12 @@ module.exports.handler = async (event, context) => {
       })
     }
   }
-  var s3StepDefinitionFiles
+  var s3StepFiles
   if (s3bucket !== '') {
     // Copy step files from S3 bucket to Lambda's own filesystem
-    // s3StepDefinitionFiles = await s3StepDefinitionFileList(s3bucket)
-    // console.log('Found the following S3 StepDefinitionFiles: ' + s3StepDefinitionFiles)
-    // copyStepDefinitionsFromS3(s3bucket, s3StepDefinitionFiles)
+    s3StepFiles = await s3StepFileList(s3bucket)
+    console.log('Found the following S3 StepDefinitionFiles: ' + s3StepFiles)
+    copyStepFilesFromS3(s3bucket, s3StepFiles)
   }
 
   const featureFilename = saveEventFeatureToFile(event)
@@ -40,14 +39,18 @@ module.exports.handler = async (event, context) => {
 
   // Remove both the saved feature file and the step files copied from S3, so they don't pollute
   // the file space for subsequent executions of this Lambda function in the same container
-  console.log('cucumberResult...')
-  console.log(cucumberResult.output)
+  // console.log('cucumberResult...')
+  // console.log(cucumberResult.output)
   removeFile(featureFilename)
-  // if (s3StepDefinitionFiles !== '') {
-  //   s3StepDefinitionFileList.forEach(stepFile => {
-  //     tidyUpFiles(stepFile)
-  //   })
-  // }
+  if (s3StepFiles !== '') {
+    console.log('s3StepFiles: ' + s3StepFiles)
+    console.log('s3StepFiles.split(): ' + s3StepFiles.toString().split(','))
+    // exit(1)
+    // s3StepFiles.toString().split(',').forEach(stepFile => {
+    s3StepFiles.forEach(stepFile => {
+      removeFile(stepFile)
+    })
+  }
 
   var statusCode = 200
   if (cucumberResult.status === 1) {
@@ -68,20 +71,22 @@ module.exports.handler = async (event, context) => {
   return response
 }
 
-const s3StepDefinitionFileList = async (s3bucket) => {
-  // console.log('Step and environment files are held in bucket ' + s3bucket)
+const s3StepFileList = async (s3bucket) => {
+  console.log('Step and environment files are held in bucket ' + s3bucket)
   const s3StepFiles = await getFiles({ Bucket: s3bucket })
-  // console.log('S3 step files: ' + s3StepFiles)
+  console.log('S3 step files: ' + s3StepFiles)
   return s3StepFiles
 }
 
 const getFiles = async (params) => {
   const response = await S3.listObjectsV2(params).promise()
-  // console.log('S3 bucket contents: ' + JSON.stringify(response))
+  console.log('S3 bucket contents: ' + JSON.stringify(response))
   var keys = []
   response.Contents.forEach(obj => {
     if (obj.Key.slice(-1) !== '/') {
+      console.log('Found S3 step file: ' + obj.Key)
       keys.push(obj.Key)
+      // keys[keys.length] = obj.Key
     }
   })
   if (response.IsTruncated) {
@@ -89,10 +94,11 @@ const getFiles = async (params) => {
     newParams.ContinuationToken = response.NextContinuationToken
     await getFiles(newParams, keys)
   }
+  console.log('getFiles(): ' + keys)
   return keys
 }
 
-const copyStepDefinitionsFromS3 = (s3bucket, fileList) => {
+const copyStepFilesFromS3 = (s3bucket, fileList) => {
   const fs = require('fs')
   const path = require('path')
   // console.log('fileList')
@@ -130,7 +136,7 @@ const saveEventFeatureToFile = (event) => {
     console.log('Parsed feature: ' + feature)
     // exit(1)
   }
-  // console.log('Feature: ' + feature)
+  console.log('Feature: ' + feature)
   fs.writeFileSync(localFeatureFilename, feature, 'utf8')
   // console.log('Saved input feature to ' + localFeatureFilename)
   const command = 'cat'
@@ -144,10 +150,6 @@ const saveEventFeatureToFile = (event) => {
 const executeCucumber = (featureFilename) => {
   const tmpFiles = listFiles('/tmp')
   console.log('files: ' + tmpFiles)
-  // var t2 = listFiles('node_modules/cucumber/bin')
-  // console.log('node_modules/.bin: ' + t2)
-  // var cmd = 'pwd'
-  // shellExec(cmd, ['-L'])
   const cmd = './cucumber-js'
   const args = [featureFilename, '--format', 'json', '--require', '"/tmp/step-definitions/*.js"']
   const result = shellExec(cmd, args, './node_modules/cucumber/bin')
@@ -166,7 +168,7 @@ const removeFile = (localFilename) => {
   const cmd = 'rm'
   const args = [localFilename]
   const response = shellExec(cmd, args).toString()
-  // console.log(response.output)
+  console.log(response.output)
   return response.status
 }
 
