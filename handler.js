@@ -33,13 +33,15 @@ module.exports.handler = async (event, context) => {
   // console.log('cucumberResult: ' + cucumberResult)
 
   // Remove both the saved feature file and the step files copied from S3, so they don't pollute
-  // the file space for subsequent executions of this Lambda function
-  console.log('cucumberResult...')
-  console.log(cucumberResult)
+  // the file space for subsequent executions of this Lambda function in the same container
+  // console.log('cucumberResult...')
+  // console.log(cucumberResult)
   tidyUpFiles(featureFilename)
-  if (s3StepDefinitionFiles !== '') {
-    tidyUpFiles(s3StepDefinitionFiles)
-  }
+  // if (s3StepDefinitionFiles !== '') {
+  //   s3StepDefinitionFileList.forEach(stepFile => {
+  //     tidyUpFiles(stepFile)
+  //   })
+  // }
 
   if (cucumberResult.code === 1) {
     return {
@@ -51,21 +53,15 @@ module.exports.handler = async (event, context) => {
   return {
     statusCode: 200,
     body: {
-      // message: 'Go Serverless v1.0! Your function executed successfully!',
       feature: event.body.feature,
       result: JSON.parse(cucumberResult)
     }
   }
-
-  // Use this code if you don't use the http event with the LAMBDA-PROXY integration
-  // return { message: 'Go Serverless v1.0! Your function executed successfully!', event };
-
-  // TODO: Return http 501 (Not Implemented) if Cucumber steps haven't been implemented yet
 }
 
 const s3StepDefinitionFileList = async (s3bucket) => {
   // console.log('Step and environment files are held in bucket ' + s3bucket)
-  var s3StepFiles = await getFiles({ Bucket: s3bucket })
+  const s3StepFiles = await getFiles({ Bucket: s3bucket })
   // console.log('S3 step files: ' + s3StepFiles)
   return s3StepFiles
 }
@@ -90,15 +86,16 @@ const getFiles = async (params) => {
 const copyStepDefinitionsFromS3 = (s3bucket, fileList) => {
   const fs = require('fs')
   const path = require('path')
+  // console.log('fileList')
   // console.log(fileList)
   fileList.forEach(file => {
-    var params = {
+    const params = {
       Bucket: s3bucket,
       Key: file
     }
-    var localFilename = path.join('/tmp/step-definitions/', file)
+    const localFilename = path.join('tmp', 'step-definitions', file)
     console.log('Copying steps from s3://' + s3bucket + '/' + file + ' to local file ' + localFilename)
-    var localFile = fs.createWriteStream(localFilename)
+    const localFile = fs.createWriteStream(localFilename)
     console.log('Localfile details: ' + JSON.stringify(localFile))
     const fileResult = S3.getObject(params).createReadStream().pipe(localFile)
     console.log('File copy result: ' + JSON.stringify(fileResult))
