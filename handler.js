@@ -5,16 +5,16 @@ const shell = require('child_process')
 const taskRoot = process.env['LAMBDA_TASK_ROOT'] || __dirname
 process.env.HOME = '/tmp'
 process.env.PATH += ':' + taskRoot
-const S3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+var S3 = new AWS.S3({
+  // accessKeyId: process.env.AWS_ACCESS_KEY,
+  // secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 })
 const s3bucket = process.env.S3_BUCKET_NAME || ''
 console.log('Reading step files from ' + s3bucket)
 
 module.exports.handler = async (event, context) => {
   console.log('Received event: ' + JSON.stringify(event))
-  if (event.body === undefined) {
+  if (event.body === null) {
     return {
       statusCode: 400,
       body: JSON.stringify({
@@ -43,10 +43,10 @@ module.exports.handler = async (event, context) => {
   // console.log(cucumberResult.output)
   removeFile(featureFilename)
   if (s3StepFiles !== undefined) {
-    console.log('s3StepFiles: ' + s3StepFiles)
-    console.log('s3StepFiles.split(): ' + s3StepFiles.toString().split(','))
-    // exit(1)
-    // s3StepFiles.toString().split(',').forEach(stepFile => {
+    // console.log('s3StepFiles: ' + s3StepFiles)
+    // console.log('s3StepFiles.split(): ' + s3StepFiles.toString().split(','))
+    // const tmpFiles = listFiles('/tmp')
+    // console.log(tmpFiles)
     s3StepFiles.forEach(stepFile => {
       removeFile(stepFile)
     })
@@ -72,19 +72,19 @@ module.exports.handler = async (event, context) => {
 }
 
 const s3StepFileList = async (s3bucket) => {
-  console.log('Step and environment files are held in bucket ' + s3bucket)
+  // console.log('Step and environment files are held in bucket ' + s3bucket)
   const s3StepFiles = await getFiles({ Bucket: s3bucket })
-  console.log('S3 step files: ' + s3StepFiles)
+  // console.log('S3 step files: ' + s3StepFiles)
   return s3StepFiles
 }
 
 const getFiles = async (params) => {
   const response = await S3.listObjectsV2(params).promise()
-  console.log('S3 bucket contents: ' + JSON.stringify(response))
+  // console.log('S3 bucket contents: ' + JSON.stringify(response))
   var keys = []
   response.Contents.forEach(obj => {
     if (obj.Key.slice(-1) !== '/') {
-      console.log('Found S3 step file: ' + obj.Key)
+      // console.log('Found S3 step file: ' + obj.Key)
       keys.push(obj.Key)
       // keys[keys.length] = obj.Key
     }
@@ -94,32 +94,43 @@ const getFiles = async (params) => {
     newParams.ContinuationToken = response.NextContinuationToken
     await getFiles(newParams, keys)
   }
-  console.log('getFiles(): ' + keys)
+  // console.log('getFiles(): ' + keys)
   return keys
 }
 
-const copyStepFilesFromS3 = (s3bucket, fileList) => {
+const copyStepFilesFromS3 = async (s3bucket, fileList) => {
   const fs = require('fs')
   const path = require('path')
-  // console.log('fileList')
-  // console.log(fileList)
+
+  // console.log('typeof fileList: ' + typeof fileList)
+  // console.log('typeof s3bucket: ' + typeof s3bucket)
+  // fileList.forEach(file => {
+  //   console.log('File: ' + file)
+  // })
   fileList.forEach(file => {
     const params = {
       Bucket: s3bucket,
-      Key: file
+      Key: file.toString()
     }
-    const localFilename = path.join('/tmp', 'step-definitions', file)
-    console.log('Copying steps from s3://' + s3bucket + '/' + file + ' to local file ' + localFilename)
+
+    // console.log(S3.getObject(params))
+    // console.log('typeof file: ' + typeof file)
+    const localFilename = path.join('/tmp/step-definitions/', file)
+
+    console.log('Copying from s3://' + s3bucket + '/' + file + ' to local file ' + localFilename)
     const localFile = fs.createWriteStream(localFilename)
-    console.log('Localfile details: ' + JSON.stringify(localFile))
-    const fileResult = S3.getObject(params).createReadStream().pipe(localFile)
-    console.log('File copy result: ' + JSON.stringify(fileResult))
-    const cmd = 'cat'
-    // const args = ['localfile']
-    const args = [ localFilename ]
-    const localFileContent = shellExec(cmd, args)
-    console.log('localFileContent: ' + localFileContent.output)
+    S3.getObject(params).createReadStream().pipe(localFile)
+
+    // S3.getObject(params, (err, data) => {
+    //   console.log('File data: ' + data.Body.toString('utf-8'))
+    //   if (err) throw (err)
+
+    //   fs.writeFileSync(data.Body.toString('utf-8'))
+    //   console.log(`${localFilename} has been created`)
+    // })
   })
+  // console.log('Here')
+  // process.exit(1)
 }
 
 const saveEventFeatureToFile = (event) => {
@@ -134,17 +145,17 @@ const saveEventFeatureToFile = (event) => {
   } else {
     // Pull apart the event received from API Gateway
     feature = JSON.parse(escapeJSON(event.body).replace(/\n/, '')).feature
-    console.log('Parsed feature: ' + feature)
+    // console.log('Parsed feature: ' + feature)
     // exit(1)
   }
-  console.log('Feature: ' + feature)
+  // console.log('Feature: ' + feature)
   fs.writeFileSync(localFeatureFilename, feature, 'utf8')
   // console.log('Saved input feature to ' + localFeatureFilename)
   const command = 'cat'
   const args = [ localFeatureFilename ]
   const featureFileContent = shellExec(command, args)
   console.log('featureFileContent: ' + featureFileContent.output)
-  console.log('localFeatureFilename: ' + localFeatureFilename)
+  // console.log('localFeatureFilename: ' + localFeatureFilename)
   return localFeatureFilename
 }
 
@@ -167,23 +178,17 @@ const listFiles = (directory) => {
 
 const removeFile = (localFilename) => {
   const cmd = 'rm'
-  const args = [localFilename]
+  const args = ['-f', localFilename]
   const response = shellExec(cmd, args).toString()
-  console.log(response.output)
   return response.status
 }
 
 const shellExec = (cmd, args, cwd) => {
-  // console.log('shellExec cmd: ' + cmd)
-  // console.log('shellExec args: ' + args)
   if (cwd === undefined) {
     cwd = process.cwd()
   }
   const result = shell.spawnSync(cmd, args, { cwd: cwd, env: process.env, stdio: 'pipe', encoding: 'utf-8' })
-  // console.log('shellExec result... ')
-  // console.log(result)
   const output = result.stdout
-  // console.log('Returning shellExec output: ' + output)
   const status = result.status
   return { status, output }
 }
