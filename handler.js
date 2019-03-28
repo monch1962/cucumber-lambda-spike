@@ -13,7 +13,9 @@ const s3bucket = process.env.S3_BUCKET_NAME || ''
 console.log('Reading step files from ' + s3bucket)
 
 module.exports.handler = async (event, context) => {
-  console.log('Received event: ' + JSON.stringify(event))
+  console.log('Received event: \n' + JSON.stringify(event))
+  console.log(listFiles('/var/task/features'))
+  console.log(shellExec('find', ['.', '-name', 'world.js']).output.toString())
   if (event.body === null) {
     return {
       statusCode: 400,
@@ -26,21 +28,14 @@ module.exports.handler = async (event, context) => {
   var s3StepFiles
   if (s3bucket !== '') {
     // Copy step files from S3 bucket to Lambda's own filesystem
-    s3StepFiles = await s3StepFileList(s3bucket)
-    console.log('Found the following S3 StepDefinitionFiles: ' + s3StepFiles)
-    copyStepFilesFromS3(s3bucket, s3StepFiles)
+    // s3StepFiles = await s3StepFileList(s3bucket)
+    // console.log('Found the following S3 StepDefinitionFiles: ' + s3StepFiles)
+    // copyStepFilesFromS3(s3bucket, s3StepFiles)
   }
 
   const featureFilename = saveEventFeatureToFile(event)
-  // console.log('Feature file: ' + featureFilename)
 
   const cucumberResult = executeCucumber(featureFilename)
-  // console.log('cucumberResult: ' + cucumberResult)
-
-  // Remove both the saved feature file and the step files copied from S3, so they don't pollute
-  // the file space for subsequent executions of this Lambda function in the same container
-  // console.log('cucumberResult...')
-  // console.log(cucumberResult.output)
   removeFile(featureFilename)
   if (s3StepFiles !== undefined) {
     // console.log('s3StepFiles: ' + s3StepFiles)
@@ -48,7 +43,7 @@ module.exports.handler = async (event, context) => {
     // const tmpFiles = listFiles('/tmp')
     // console.log(tmpFiles)
     s3StepFiles.forEach(stepFile => {
-      removeFile(stepFile)
+      // removeFile(stepFile)
     })
   }
 
@@ -66,8 +61,7 @@ module.exports.handler = async (event, context) => {
       result: JSON.parse(cucumberResult.output)
     })
   }
-  console.log('Response...')
-  console.log(response)
+  console.log('Lambda response: \n' + JSON.stringify(response))
   return response
 }
 
@@ -102,11 +96,6 @@ const copyStepFilesFromS3 = async (s3bucket, fileList) => {
   const fs = require('fs')
   const path = require('path')
 
-  // console.log('typeof fileList: ' + typeof fileList)
-  // console.log('typeof s3bucket: ' + typeof s3bucket)
-  // fileList.forEach(file => {
-  //   console.log('File: ' + file)
-  // })
   fileList.forEach(file => {
     const params = {
       Bucket: s3bucket,
@@ -129,6 +118,7 @@ const copyStepFilesFromS3 = async (s3bucket, fileList) => {
     //   console.log(`${localFilename} has been created`)
     // })
   })
+  console.log(listFiles('/tmp'))
   // console.log('Here')
   // process.exit(1)
 }
@@ -145,8 +135,6 @@ const saveEventFeatureToFile = (event) => {
   } else {
     // Pull apart the event received from API Gateway
     feature = JSON.parse(escapeJSON(event.body).replace(/\n/, '')).feature
-    // console.log('Parsed feature: ' + feature)
-    // exit(1)
   }
   // console.log('Feature: ' + feature)
   fs.writeFileSync(localFeatureFilename, feature, 'utf8')
@@ -154,18 +142,23 @@ const saveEventFeatureToFile = (event) => {
   const command = 'cat'
   const args = [ localFeatureFilename ]
   const featureFileContent = shellExec(command, args)
-  console.log('featureFileContent: ' + featureFileContent.output)
+  console.log('featureFileContent: \n' + featureFileContent.output)
   // console.log('localFeatureFilename: ' + localFeatureFilename)
   return localFeatureFilename
 }
 
 const executeCucumber = (featureFilename) => {
-  const tmpFiles = listFiles('/tmp')
-  console.log('files: ' + tmpFiles)
+  // const tmpFiles = listFiles('/tmp')
+  // console.log('files: ' + tmpFiles)
   const cmd = './cucumber-js'
-  const args = [featureFilename, '--format', 'json', '--require', '"/tmp/step-definitions/*.js"']
+  // const args = [featureFilename, '--format', 'json', '--require', '"/tmp/step-definitions/*.js"']
+  const args = [featureFilename, '--format', 'json', '--require', '"/var/task/features/**/*.js"']
+  // const args = [featureFilename, '--format', 'json']
+  // const args = [featureFilename, '--format', 'json', '--require', '\'../../features/**/*.js\'']
+
+  console.log('Cucumber request: \n' + cmd + ' ' + JSON.stringify(args).replace(/,/g, ' '))
   const result = shellExec(cmd, args, './node_modules/cucumber/bin')
-  console.log('Cucumber response: ' + result.output)
+  console.log('Cucumber response: \n' + result.output)
   return result
 }
 
