@@ -157,11 +157,13 @@ const executeCucumber = async (featureFilename) => {
   console.log('featureFilename: ' + featureFilename)
   const cmd = './cucumber-js'
   const args = [featureFilename, '--format', 'json', '--require', '"/tmp/**/*.js"']
+  // const args = [featureFilename, '--format', 'json', '--require', '"../../../../../../../tmp/step-definitions/*.js"']
   // const args = [featureFilename, '--format', 'json']
 
   // console.log(listFiles('/var/task/node_modules/cucumber/bin'))
   console.log(listFiles('./node_modules/cucumber/bin'))
-  console.log('Cucumber request: \n' + cmd + ' ' + JSON.stringify(args).replace(/,/g, ' '))
+  // console.log('Cucumber request: \n' + cmd + ' ' + JSON.stringify(args).replace(/,/g, ' '))
+  console.log('Cucumber request: \n' + cmd + ' ' + args.join(' '))
   // const result = await shellExec(cmd, args, './node_modules/cucumber/bin')
   const result = await shell.spawnSync(cmd, args, { cwd: './node_modules/cucumber/bin', env: process.env, stdio: 'pipe', encoding: 'utf-8' })
   // const result = await shell.execSync('./cucumber-js ' + featureFilename + ' --format json --require /tmp/step-definitions/*.js',
