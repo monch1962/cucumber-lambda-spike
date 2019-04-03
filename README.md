@@ -50,6 +50,15 @@
 - _Flexibility:_ this approach leaves us free to evolve back-end implementation over time while still preserving `Given...When...Then...` interface at front-end 
 - _Customer acceptance:_ our customers seem to like tests written using Cucumber
 
+## Implementation
+Note that the following approaches will depend on specific NodeJS libraries being deployed within the serverless function
+- _API testing:_ API testing should be particularly easy to implement, using either the `request` or `request-promise` NodeJS packages
+- _UI testing:_ hopefully we'll find a way to implement browser automation within the confines of a serverless function; this would greatly simplify our current approach. If not, we can call out to e.g. a self-managed Selenium Grid or a 3rd party such as Browser Stack
+- _Accessibility testing:_ we can use the `axe` libraries to deliver a limited form of accessibility testing
+- _Security testing:_ to be determined
+- _Chaos testing:_ to be determined
+- _Compliance testing:_ to be determined
+
 ## Testing this project
 To simulate call to Lambda function locally, passing in a viable feature file
 `$ ./node_modules/lambda-local/bin/lambda-local -l handler.js -e api-gw-event.json -h handler -E {\"S3_BUCKET_NAME\":\"cucumber-files\"} -t 20`
