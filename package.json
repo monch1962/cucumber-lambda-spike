@@ -18,7 +18,7 @@
     "npm": "^6.9.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
-    "serverless": "^1.39.1"
+    "serverless": "^1.40.0"
   },
   "devDependencies": {
     "cypress-cucumber-preprocessor": "^1.11.0",
@@ -29,6 +29,7 @@
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
     "lambda-local": "^1.5.2",
+    "serverless-plugin-include-dependencies": "^3.2.1",
     "supertest": "^3.4.2"
   }
 }

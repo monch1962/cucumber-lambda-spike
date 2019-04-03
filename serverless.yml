@@ -13,8 +13,14 @@
 
 service: cucumber-lambda-spike # NOTE: update this with your service name
 
+#plugins:
+#  - serverless-plugin-include-dependencies
+
 custom:
   S3_BUCKET_NAME: 'cucumber-files'
+  #includeDependencies:
+  #  always:
+  #    - 'node_modules/cucumber/**'
 
 # You can pin your service to only deploy with a specific Serverless version
 # Check out our docs for more details
@@ -34,7 +40,7 @@ provider:
         - "s3:GetObject"
       Resource:
         #- { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ]]}
-        - "arn:aws:s3:::${self:custom.S3_BUCKET_NAME}"
+        - arn:aws:s3:::cucumber-files/*
         #- "arn:aws:s3:::${self.custom.S3_BUCKET_NAME}/*"
         #- "arn:aws:s3:::${self.custom.S3_BUCKET_NAME}/*.*"
 
