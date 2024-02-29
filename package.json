@@ -12,7 +12,7 @@
     "aws-sdk": "^2.427.0",
     "axe-testcafe": "^1.1.0",
     "chai": "^4.2.0",
-    "cucumber": "^5.1.0",
+    "cucumber": "^6.0.7",
     "npm": "^6.9.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
